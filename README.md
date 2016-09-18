@@ -26,11 +26,49 @@ docker-compose up
 docker-compose up
 ```
 
+*Если первый запуск выдаст ошибку `lentarssscraper_api_1 exited with code 1`, нужно запустить еще раз*
+
 ## Интерфейс
 
-Запуск рейк-таска на получение фида: `docker-compose exec api rake import:lenta_feed`
+Запуск рейк-таска на получение фида: 
 
 ```
-curl "localhost:3000/api/v0/feeds.json?page=1&per=10"
-curl "localhost:3000/api/v0/feeds/search?q=...page=..."
+docker-compose exec api rake rss_feeds:grub
 ```
+
+Прохождение тестов:
+
+```
+docker-compose exec api bundle exec rspec
+```
+
+API:
+
+```
+curl "localhost:3000/api/v0/rss_feeds.json?page=1&per=10"
+curl "localhost:3000/api/v0/rss_feeds/search?q=...&page=1&per=10"
+```
+
+## Реализация
+
+За получение и сохранение rss-записей отвечает таск rss_feeds:grub. Его можно вызвать в качестве воркера или демонизировать. Таск пишет в лог `log/rss_feeds-grub.log`.
+
+```
+# Если передать frequency, то будет работать с соответствующим интервалом, 
+# игнорируя возможные исключения.
+# Если вызвать с demonize, то процесс будет демонизирован.
+# Без аргументов таск просто отработает (удобно ставить в крон).
+rake rss_feeds:grub[5.minutes,false]
+```
+
+Для AR-методов поиска использован гем `textacular`.
+
+Вместо параметров limit и offset сделана пагинация.
+
+Для сериализации json-ответов использован active_model_serializers. В ответ добавлена мета-информация о пагинации.
+
+Написаны тесты для модели, контроллера и рейк-таска, при этом удаленные вызовы записаны как vcr-кассета.
+
+При вызове `rails db:seed` первый раз, заполняется таблица rss_feeds (из vcr-кассеты).
+
+При запуске приложения через docker-compose вызывается `db:create db:migrate db:seed`, поэтому приложение готово к работе, без прединициализации. Можно поднять приложение не целиком, а только СУБД - `docker-compose up db`.

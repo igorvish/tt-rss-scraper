@@ -1,0 +1,37 @@
+version: '2'
+
+services:
+  api:
+    build: ../lenta-rss-scraper
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../lenta-rss-scraper:/app
+    environment:
+      - RAILS_ENV=development
+      - DATABASE_URL=postgres://lenta-rss-scraper:password@db:5432/lenta-rss-scraper_development?pool=10
+      - TEST_DATABASE_URL=postgres://lenta-rss-scraper:password@db:5432/lenta-rss-scraper_test?pool=10
+      - SECRET_KEY_BASE=b9f719d0a6c958690269a5b13e780abe5427721f74245404cdd4a105163c4eebe3c23d336ab06e3fa0f9399344a7f82d523286a9eebb829ca3b7509924d6c59b
+    links:
+      - db
+    #volumes_from:
+    #  - shared_store
+    command: bash -c "sleep 10 &&  rm -rf tmp/pids && bundle exec bin/rails db:create && bundle exec bin/rails db:migrate && bundle exec bin/rails db:seed && bundle exec bin/rails s --bind 0.0.0.0 -p 3000"
+
+  db:
+    image: postgres:9.5.4
+    ports:
+      - "5434:5432"
+    environment:
+      - POSTGRES_USER=lenta-rss-scraper
+      - POSTGRES_PASSWORD=password
+    volumes_from:
+      - shared_store
+
+  shared_store:
+    image: busybox
+    volumes:
+      # Вольюм pg
+      - /var/lib/postgresql/data
+      # Вольюм api
+      - /usr/local/bundle

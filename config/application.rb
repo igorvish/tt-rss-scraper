@@ -32,8 +32,8 @@ module LentaRssScraper
     ###########################################################################
     
     # Формат схемы - sql, так как используем нестрандартные индексы.
-    # Или отказываемся от schema.rb.
-    config.active_record.schema_format = :sql
+    # config.active_record.schema_format = :sql
+    # Или отказываемся от schema.rb. - THIS!
 
   end
 end
